@@ -39,7 +39,7 @@ import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/vue
 #container strong {
   font-size: 20px;
   line-height: 26px;
-}
+} 
 
 #container p {
   font-size: 16px;
