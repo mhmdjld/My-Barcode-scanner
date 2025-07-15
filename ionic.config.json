@@ -1,0 +1,7 @@
+{
+  "name": "my-barcode-scanner",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue-vite"
+}
