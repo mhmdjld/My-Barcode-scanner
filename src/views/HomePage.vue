@@ -18,7 +18,7 @@
         <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
       </div>
     </ion-content>
-  </ion-page>
+  </ion-page> 
 </template>
 
 <script setup lang="ts">
