@@ -42,6 +42,12 @@
             slot="start"
             :icon="qrCodeOutline"
           />
+          <!-- Lineare Barcode Icon, wenn format linearen Code erhält -->
+          <ion-icon
+            v-else-if="barcode.format && ['code','ean','upc','itf','codabar'].some(key => barcode.format.toLowerCase().includes(key))"
+            slot="start"
+            :icon="barcodeOutline"
+          />
 
           <ion-label>
             <h2>
@@ -124,6 +130,7 @@ import {
   callOutline,
   trashOutline,
   qrCodeOutline,
+  barcodeOutline,       
 } from 'ionicons/icons'
 
 import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning'
