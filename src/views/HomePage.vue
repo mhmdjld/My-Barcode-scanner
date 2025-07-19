@@ -10,7 +10,7 @@
       <!-- Loading Spinner -->
       <ion-loading :is-open="isLoading" message="Loading" />
 
-      <!-- Kopieren-Bestätigung -->
+      <!-- Kopieren Bestätigung -->
       <ion-toast
         :is-open="copyToast"
         message="In Zwischenablage kopiert"
@@ -18,12 +18,12 @@
         @did-dismiss="copyToast = false"
       />
 
-      <!-- Buttons zum Scanne -->
+      <!-- Button zum Scanne -->
       <ion-button expand="block" @click="scanFromCamera" :disabled="isLoading">
         <ion-icon slot="start" :icon="cameraOutline" />
         Kamera-Scan
       </ion-button>
-      <!-- Buttons zum Auswählen eines Bildes aus der Galerie -->
+      <!-- Button zum Auswählen eines Bildes aus der Galerie -->
       <ion-button expand="block" @click="scanFromGallery" :disabled="isLoading">
         <ion-icon slot="start" :icon="imagesOutline" />
         Bild auswählen
@@ -36,6 +36,13 @@
           v-for="(barcode, index) in barcodes"
           :key="barcode.id || index"
         >
+          <!-- QR Code Icon, wenn format QR-Code enthält -->
+          <ion-icon
+            v-if="barcode.format && barcode.format.toLowerCase().includes('qr')"
+            slot="start"
+            :icon="qrCodeOutline"
+          />
+
           <ion-label>
             <h2>
               <template v-if="barcode.valueType === 'URL'">
@@ -54,11 +61,11 @@
 
           <ion-buttons slot="end">
             <!-- Button zum Teilen -->
-            <ion-button fill="clear" @click="shareBarcode(barcode)">
+            <ion-button fill="clear" @click="shareBarcode(barcode)" aria-label="Teilen">
               <ion-icon :icon="shareSocialOutline" />
             </ion-button>
             <!-- Button zum Kopieren -->
-            <ion-button fill="clear" @click="copyBarcode(barcode)">
+            <ion-button fill="clear" @click="copyBarcode(barcode)" aria-label="Kopieren">
               <ion-icon :icon="copyOutline" />
             </ion-button>
             <!-- Link im Browser öffnen -->
@@ -66,6 +73,7 @@
               v-if="barcode.valueType === 'URL'"
               fill="clear"
               @click="openInBrowser(barcode)"
+              aria-label="Im Browser öffnen"
             >
               <ion-icon :icon="globeOutline" />
             </ion-button>
@@ -74,11 +82,12 @@
               v-if="barcode.valueType === 'PHONE'"
               fill="clear"
               @click="callPhone(barcode)"
+              aria-label="Anrufen"
             >
               <ion-icon :icon="callOutline" />
             </ion-button>
             <!-- Button zum löschen -->
-            <ion-button fill="clear" @click="deleteBarcode(index)">
+            <ion-button fill="clear" @click="deleteBarcode(index)" aria-label="Löschen">
               <ion-icon :icon="trashOutline" color="danger" />
             </ion-button>
           </ion-buttons>
@@ -114,6 +123,7 @@ import {
   globeOutline,
   callOutline,
   trashOutline,
+  qrCodeOutline,
 } from 'ionicons/icons'
 
 import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning'
@@ -124,11 +134,12 @@ import { Browser } from '@capacitor/browser'
 import { Preferences } from '@capacitor/preferences'
 import { ref, onMounted } from 'vue'
 
-// Generieren einer ID für Animations-Key
+
 let nextId = 1
 const barcodes = ref<any[]>([])
 const isLoading = ref(false)
 const copyToast = ref(false)
+
 
 const loadBarcodes = async () => {
   const { value } = await Preferences.get({ key: 'barcodes' })
@@ -137,20 +148,16 @@ const loadBarcodes = async () => {
     barcodes.value = saved.map((b: any) => ({ ...b, id: nextId++ }))
   }
 }
-
 const saveBarcodes = async () => {
   await Preferences.set({ key: 'barcodes', value: JSON.stringify(barcodes.value) })
 }
-
 onMounted(loadBarcodes)
+
 
 const ensureCameraPermission = async () => {
   const status = await BarcodeScanner.checkPermissions()
-  if (status.camera !== 'granted') {
-    throw new Error('Kamera-Berechtigung verweigert')
-  }
+  if (status.camera !== 'granted') throw new Error('Kamera-Berechtigung verweigert')
 }
-
 const scanFromCamera = async () => {
   try {
     await ensureCameraPermission()
@@ -170,14 +177,12 @@ const scanFromCamera = async () => {
     isLoading.value = false
   }
 }
-
 const scanFromGallery = async () => {
   try {
     isLoading.value = true
     const result = await FilePicker.pickImages()
-    if (!result.files.length) {
-      window.alert('Kein Bild ausgewählt')
-    } else {
+    if (!result.files.length) window.alert('Kein Bild ausgewählt')
+    else {
       const file = result.files[0]
       if (!file.path) throw new Error('Ungültiger Dateipfad')
       const imageScan = await BarcodeScanner.readBarcodesFromImage({ path: file.path })
@@ -197,42 +202,42 @@ const scanFromGallery = async () => {
   }
 }
 
-const deleteBarcode = async (index: number) => {
-  barcodes.value.splice(index, 1)
+
+const deleteBarcode = async (i: number) => {
+  barcodes.value.splice(i, 1)
   await saveBarcodes()
 }
-
-const shareBarcode = async (barcode: any) => {
-  const text = barcode.displayValue ?? barcode.rawValue
-  await Share.share({ text })
+const shareBarcode = async (b: any) => {
+  await Share.share({ text: b.displayValue ?? b.rawValue })
 }
-
-const copyBarcode = async (barcode: any) => {
-  const text = barcode.displayValue ?? barcode.rawValue
-  await Clipboard.write({ string: text })
+const copyBarcode = async (b: any) => {
+  await Clipboard.write({ string: b.displayValue ?? b.rawValue })
   copyToast.value = true
 }
-
-const openInBrowser = async (barcode: any) => {
-  const url = barcode.displayValue ?? barcode.rawValue
-  await Browser.open({ url })
+const openInBrowser = async (b: any) => {
+  await Browser.open({ url: b.displayValue ?? b.rawValue })
 }
-
-const callPhone = (barcode: any) => {
-  const number = barcode.displayValue ?? barcode.rawValue
-  window.open(`tel:${number}`, '_system')
+const callPhone = (b: any) => {
+  window.open(`tel:${b.displayValue ?? b.rawValue}`, '_system')
 }
-
 const extractDomain = (url: string) => {
-  try {
-    return new URL(url).hostname
-  } catch {
-    return url
-  }
+  try { return new URL(url).hostname }
+  catch { return url }
 }
 </script>
 
 <style scoped>
+
+.barcode-item ion-label h2 {
+  font-size: 0.875rem;
+  margin: 2px 0;
+}
+.barcode-item ion-label p {
+  font-size: 0.75rem;
+  margin: 1px 0;
+}
+
+
 .barcode-item {
   position: relative;
 }
@@ -241,6 +246,8 @@ const extractDomain = (url: string) => {
   right: 16px;
   bottom: 8px;
 }
+
+
 ion-button {
   margin-top: 10px;
 }
