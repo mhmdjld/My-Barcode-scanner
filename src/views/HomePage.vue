@@ -163,8 +163,18 @@ onMounted(loadBarcodes)
 
 const ensureCameraPermission = async () => {
   const status = await BarcodeScanner.checkPermissions()
-  if (status.camera !== 'granted') throw new Error('Kamera-Berechtigung verweigert')
+  if (status.camera === 'prompt') {
+    const newStatus = await BarcodeScanner.requestPermissions()
+    if (newStatus.camera !== 'granted') {
+      throw new Error('Kamera-Berechtigung verweigert')
+    }
+  }
+  else if (status.camera !== 'granted') {
+    throw new Error('Kamera-Berechtigung verweigert')
+  }
 }
+
+
 const scanFromCamera = async () => {
   try {
     await ensureCameraPermission()
@@ -184,6 +194,7 @@ const scanFromCamera = async () => {
     isLoading.value = false
   }
 }
+
 const scanFromGallery = async () => {
   try {
     isLoading.value = true
@@ -234,7 +245,6 @@ const extractDomain = (url: string) => {
 </script>
 
 <style scoped>
-
 .barcode-item ion-label h2 {
   font-size: 0.875rem;
   margin: 2px 0;
@@ -244,7 +254,6 @@ const extractDomain = (url: string) => {
   margin: 1px 0;
 }
 
-
 .barcode-item {
   position: relative;
 }
@@ -253,7 +262,6 @@ const extractDomain = (url: string) => {
   right: 16px;
   bottom: 8px;
 }
-
 
 ion-button {
   margin-top: 10px;
