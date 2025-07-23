@@ -67,11 +67,11 @@
 
           <ion-buttons slot="end">
             <!-- Button zum Teilen -->
-            <ion-button fill="clear" @click="shareBarcode(barcode)" aria-label="Teilen">
+            <ion-button fill="clear" @click="shareBarcode(barcode)">
               <ion-icon :icon="shareSocialOutline" />
             </ion-button>
             <!-- Button zum Kopieren -->
-            <ion-button fill="clear" @click="copyBarcode(barcode)" aria-label="Kopieren">
+            <ion-button fill="clear" @click="copyBarcode(barcode)">
               <ion-icon :icon="copyOutline" />
             </ion-button>
             <!-- Link im Browser öffnen -->
@@ -79,7 +79,6 @@
               v-if="barcode.valueType === 'URL'"
               fill="clear"
               @click="openInBrowser(barcode)"
-              aria-label="Im Browser öffnen"
             >
               <ion-icon :icon="globeOutline" />
             </ion-button>
@@ -88,12 +87,11 @@
               v-if="barcode.valueType === 'PHONE'"
               fill="clear"
               @click="callPhone(barcode)"
-              aria-label="Anrufen"
             >
               <ion-icon :icon="callOutline" />
             </ion-button>
             <!-- Button zum löschen -->
-            <ion-button fill="clear" @click="deleteBarcode(index)" aria-label="Löschen">
+            <ion-button fill="clear" @click="deleteBarcode(index)">
               <ion-icon :icon="trashOutline" color="danger" />
             </ion-button>
           </ion-buttons>
