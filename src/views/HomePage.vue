@@ -178,6 +178,11 @@ const scanFromCamera = async () => {
     await ensureCameraPermission()
     isLoading.value = true
     const result = await BarcodeScanner.scan()
+    if ((result as any).canceled) {
+      window.alert('Scan abgebrochen')
+      return
+    }
+
     if (result?.barcodes?.length) {
       const items = result.barcodes.map((b: any) => ({ ...b, id: nextId++ }))
       barcodes.value.push(...items)
@@ -186,6 +191,10 @@ const scanFromCamera = async () => {
       window.alert('Kein Barcode gefunden')
     }
   } catch (e: any) {
+    if (e.message?.toLowerCase().includes('cancel')) {
+      window.alert('Scan abgebrochen')
+      return
+    }
     console.error(e)
     window.alert(e.message || 'Scan fehlgeschlagen')
   } finally {
@@ -197,20 +206,31 @@ const scanFromGallery = async () => {
   try {
     isLoading.value = true
     const result = await FilePicker.pickImages()
-    if (!result.files.length) window.alert('Kein Bild ausgewählt')
-    else {
-      const file = result.files[0]
-      if (!file.path) throw new Error('Ungültiger Dateipfad')
-      const imageScan = await BarcodeScanner.readBarcodesFromImage({ path: file.path })
-      if (imageScan?.barcodes?.length) {
-        const items = imageScan.barcodes.map((b: any) => ({ ...b, id: nextId++ }))
-        barcodes.value.push(...items)
-        await saveBarcodes()
-      } else {
-        window.alert('Kein Barcode gefunden')
-      }
+    if ((result as any).canceled) {
+      window.alert('Auswahl abgebrochen')
+      return
+    }
+
+    if (!result.files.length) {
+      window.alert('Kein Bild ausgewählt')
+      return
+    }
+
+    const file = result.files[0]
+    if (!file.path) throw new Error('Ungültiger Dateipfad')
+    const imageScan = await BarcodeScanner.readBarcodesFromImage({ path: file.path })
+    if (imageScan?.barcodes?.length) {
+      const items = imageScan.barcodes.map((b: any) => ({ ...b, id: nextId++ }))
+      barcodes.value.push(...items)
+      await saveBarcodes()
+    } else {
+      window.alert('Kein Barcode gefunden')
     }
   } catch (e: any) {
+    if (e.message?.toLowerCase().includes('canceled')) {
+      window.alert('Auswahl abgebrochen')
+      return
+    }
     console.error(e)
     window.alert(e.message || 'Scan fehlgeschlagen')
   } finally {
