@@ -349,4 +349,3 @@ ion-button {
   transform: scale(0.5);
 }
 </style>
-
