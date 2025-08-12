@@ -18,6 +18,27 @@
         @did-dismiss="copyToast = false"
       />
 
+      <!-- Duplikat Alert -->
+      <ion-alert
+        :is-open="duplicateAlert"
+        header="Hinweis"
+        message="Barcode bereits vorhanden"
+        :buttons="[{ text: 'OK', handler: () => duplicateAlert = false }]"
+        @did-dismiss="duplicateAlert = false"
+      />
+
+      <!-- Löschbestätigung Alert -->
+      <ion-alert
+        :is-open="deleteConfirm.isOpen"
+        header="Löschen bestätigen"
+        message="Möchten Sie diesen Barcode wirklich löschen?"
+        :buttons="[
+          { text: 'Abbrechen', role: 'cancel', handler: () => deleteConfirm.isOpen = false },
+          { text: 'Löschen', role: 'destructive', handler: () => confirmDelete() }
+        ]"
+        @did-dismiss="deleteConfirm.isOpen = false"
+      />
+
       <!-- Button zum Scanne -->
       <ion-button expand="block" @click="scanFromCamera" :disabled="isLoading">
         <ion-icon slot="start" :icon="cameraOutline" />
@@ -91,7 +112,7 @@
               <ion-icon :icon="callOutline" />
             </ion-button>
             <!-- Button zum löschen -->
-            <ion-button fill="clear" @click="deleteBarcode(index)">
+            <ion-button fill="clear" @click="promptDelete(index)">
               <ion-icon :icon="trashOutline" color="danger" />
             </ion-button>
           </ion-buttons>
@@ -116,6 +137,7 @@ import {
   IonIcon,
   IonLoading,
   IonToast,
+  IonAlert,
 } from '@ionic/vue'
 
 // Ion Icons
@@ -139,12 +161,12 @@ import { Browser } from '@capacitor/browser'
 import { Preferences } from '@capacitor/preferences'
 import { ref, onMounted } from 'vue'
 
-
 let nextId = 1
 const barcodes = ref<any[]>([])
 const isLoading = ref(false)
 const copyToast = ref(false)
-
+let duplicateAlert = ref(false)
+const deleteConfirm = ref({ isOpen: false, index: null as number | null })
 
 const loadBarcodes = async () => {
   const { value } = await Preferences.get({ key: 'barcodes' })
@@ -157,7 +179,6 @@ const saveBarcodes = async () => {
   await Preferences.set({ key: 'barcodes', value: JSON.stringify(barcodes.value) })
 }
 onMounted(loadBarcodes)
-
 
 const ensureCameraPermission = async () => {
   const status = await BarcodeScanner.checkPermissions()
@@ -172,7 +193,6 @@ const ensureCameraPermission = async () => {
   }
 }
 
-
 const scanFromCamera = async () => {
   try {
     await ensureCameraPermission()
@@ -184,9 +204,16 @@ const scanFromCamera = async () => {
     }
 
     if (result?.barcodes?.length) {
-      const items = result.barcodes.map((b: any) => ({ ...b, id: nextId++ }))
-      barcodes.value.push(...items)
-      await saveBarcodes()
+      const newCodes = result.barcodes.filter((b: any) => {
+        const exists = barcodes.value.some(existing => existing.rawValue === b.rawValue)
+        if (exists) duplicateAlert.value = true
+        return !exists
+      })
+      if (newCodes.length) {
+        const items = newCodes.map((b: any) => ({ ...b, id: nextId++ }))
+        barcodes.value.unshift(...items)
+        await saveBarcodes()
+      }
     } else {
       window.alert('Kein Barcode gefunden')
     }
@@ -220,9 +247,16 @@ const scanFromGallery = async () => {
     if (!file.path) throw new Error('Ungültiger Dateipfad')
     const imageScan = await BarcodeScanner.readBarcodesFromImage({ path: file.path })
     if (imageScan?.barcodes?.length) {
-      const items = imageScan.barcodes.map((b: any) => ({ ...b, id: nextId++ }))
-      barcodes.value.push(...items)
-      await saveBarcodes()
+      const newCodes = imageScan.barcodes.filter((b: any) => {
+        const exists = barcodes.value.some(existing => existing.rawValue === b.rawValue)
+        if (exists) duplicateAlert.value = true
+        return !exists
+      })
+      if (newCodes.length) {
+        const items = newCodes.map((b: any) => ({ ...b, id: nextId++ }))
+        barcodes.value.unshift(...items)
+        await saveBarcodes()
+      }
     } else {
       window.alert('Kein Barcode gefunden')
     }
@@ -238,11 +272,18 @@ const scanFromGallery = async () => {
   }
 }
 
-
-const deleteBarcode = async (i: number) => {
-  barcodes.value.splice(i, 1)
-  await saveBarcodes()
+// Vor Löschen bestätigen
+const promptDelete = (i: number) => {
+  deleteConfirm.value = { isOpen: true, index: i }
 }
+const confirmDelete = async () => {
+  if (deleteConfirm.value.index !== null) {
+    barcodes.value.splice(deleteConfirm.value.index, 1)
+    await saveBarcodes()
+    deleteConfirm.value = { isOpen: false, index: null }
+  }
+}
+
 const shareBarcode = async (b: any) => {
   await Share.share({ text: b.displayValue ?? b.rawValue })
 }
