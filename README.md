@@ -19,7 +19,7 @@ Bevor du startest, stelle sicher, dass folgende Tools installiert sind:
 1. **Repository klonen**
 
    ```bash
-   git clone (https://github.com/mhmdjld/My_Barcode_Scanner.git)
+   git clone https://github.com/mhmdjld/My_Barcode_Scanner.git
    cd My_Barcode_Scanner
    ```
 
